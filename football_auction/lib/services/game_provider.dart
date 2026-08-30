@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../models/player.dart';
@@ -117,9 +118,10 @@ class GameProvider extends ChangeNotifier {
     required String serverUrl,
   }) async {
     connect(serverUrl);
-    
+
+    final completer = Completer<bool>();
     try {
-      final response = await _socket!.emitWithAck('create_room', {
+      _socket!.emitWithAck('create_room', {
         'playerName': playerName,
         'auctionType': auctionType,
         'vsAI': vsAI,
@@ -130,12 +132,15 @@ class GameProvider extends ChangeNotifier {
           _playerId = data['playerId'];
           _isHost = true;
           notifyListeners();
+          completer.complete(true);
+        } else {
+          completer.complete(false);
         }
       });
-      return true;
     } catch (e) {
-      return false;
+      completer.complete(false);
     }
+    return completer.future;
   }
 
   // Join room
@@ -145,9 +150,10 @@ class GameProvider extends ChangeNotifier {
     required String serverUrl,
   }) async {
     connect(serverUrl);
-    
+
+    final completer = Completer<bool>();
     try {
-      final response = await _socket!.emitWithAck('join_room', {
+      _socket!.emitWithAck('join_room', {
         'roomCode': roomCode,
         'playerName': playerName,
       }, ack: (data) {
@@ -156,12 +162,15 @@ class GameProvider extends ChangeNotifier {
           _playerId = data['playerId'];
           _isHost = false;
           notifyListeners();
+          completer.complete(true);
+        } else {
+          completer.complete(false);
         }
       });
-      return true;
     } catch (e) {
-      return false;
+      completer.complete(false);
     }
+    return completer.future;
   }
 
   // Start auction
